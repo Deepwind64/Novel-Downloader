@@ -95,7 +95,7 @@ class PiliSpider(object):
             sleep(uniform(1, 1.5))
             self.fo.flush()
 
-        print('\n获取书籍目录中...')
+        print('获取书籍目录中...')
         html = self.get_html(self.url_cl+'1/')
         re_bds_l = r'下一页</a><a href="/./(.*?)/">尾页</a></div>'
         # parse_html()返回：[str]
@@ -105,10 +105,10 @@ class PiliSpider(object):
         self.url_cpt_list = cut_url(url_cpt)
         self.save('目录\n\n')
         re_bds_c = r"<li><a href='https://www\.pilibook\.net/.*?\.html'>(.*?)<span></span></a></li>"
-        for i in tqdm(range(len_ctl)):
+        for i in tqdm(range(len_ctl), unit='chapter', colour='blue'):
             # single_page = [str,str,...]
             single_page_saver()
-        print('\n目录获取完毕，长度：%d章\n' % self.len_cpt)
+        print('目录获取完毕，长度：%d章\n' % self.len_cpt)
         self.save('\n')
         self.csvfile = open('progress.csv', 'a+', encoding='utf-8', newline='')
         state = csv.writer(self.csvfile, delimiter=' ', quotechar='|')
@@ -120,7 +120,8 @@ class PiliSpider(object):
         print('开始下载正文...')
         if not self.flag_resume:
             self.save('正文\n\n')
-        for i in tqdm(range(self.index, self.len_cpt)):
+        sleep(0.1)
+        for i in tqdm(range(self.index, self.len_cpt), unit='chapter', colour='green'):
             html = self.get_html(self.url_cpt_list[0] + str(self.url_cpt_list[1] + i) + '.html')
             # 保存标题
             re_bds_t = r'\s+<h1 id="chaptertitle">(.*?)</h1>'
@@ -197,7 +198,6 @@ def progress_resume():
             process(url_list, index)
     os.remove('progress.csv')
 
-# FIXME 完成目录网址支持
 def url_input():
     # TODO 解决两次回车
     print('请输入小说网址（支持小说首页，目录网址，可批量导入），注意需要多敲击回车一次：')
@@ -207,10 +207,15 @@ def url_input():
     while flag_input:
         print(f'{number}.', end=' ')
         u = sys.stdin.readline().strip()
-        number += 1
-        # TODO 加入更精确的网址合法性检查
-        if 'https://www.pilibook.net/' in u:
+        re_main = re.compile(r'https://www\.pilibook\.net/book/\d+\.html')
+        re_chapter = re.compile(r'https://www\.pilibook\.net/\d+/(\d+)/')
+        if re_main.findall(u):
             url.append(u)
+            number += 1
+            continue
+        elif num := re_chapter.findall(u):
+            url.append('https://www.pilibook.net/book/' + num[0] + '.html')
+            number += 1
             continue
         elif u == '':
             while True:
